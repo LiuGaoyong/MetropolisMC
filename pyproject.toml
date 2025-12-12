@@ -1,0 +1,52 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "MetropolisMC"
+version = "0.0.1"
+description = "The Monte Carlo Simulation Packages Based on ASE"
+readme = "README.md"
+authors = [{ name = "LiuGaoyong", email = "liugaoyong_88@163.com" }]
+requires-python = ">=3.10"
+dependencies = [
+    "ase",
+    "hydra-core",
+    "hydra-zen",
+    'loguru',
+    "pydantic",
+    # "pyyaml",            # YAML parser & writer
+    "typing-extensions",
+]
+[dependency-groups]
+dev = [
+    "ruff>=0.11",
+    "pytest>=8.3",
+    "pytest-xdist",
+    "jupyterlab",   #
+]
+
+# uv config
+[tool.uv]
+package = true
+[[tool.uv.index]]
+url = "https://mirrors.tuna.tsinghua.edu.cn/pypi/web/simple" # TUNA
+default = true
+
+# pytest config
+[tool.pytest.ini_options]
+addopts = '--maxfail=1 -rf' # exit after 1 failures, report fail info
+testpaths = ["tests"]
+filterwarnings = [
+    "error", # All other warnings are transformed into errors.
+    # ignore the following warnings that matching a regex
+]
+
+# ruff config
+[tool.ruff]
+line-length = 80
+indent-width = 4
+select = ["F", "E", "W", "UP", "D"]
+ignore = ["F722", 'D100']
+[tool.ruff.pydocstyle]
+convention = "google"
