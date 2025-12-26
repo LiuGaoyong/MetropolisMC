@@ -11,20 +11,19 @@ authors = [{ name = "LiuGaoyong", email = "liugaoyong_88@163.com" }]
 requires-python = ">=3.10"
 dependencies = [
     "ase",
-    "hydra-core",
-    "hydra-zen",
     'loguru',
-    "pydantic",
-    # "pyyaml",            # YAML parser & writer
+    'pydantic',
     "typing-extensions",
+    "typer",             # CLI utils
 ]
 [dependency-groups]
 dev = [
+    'vesin',       # fast neighbor search
     "ruff>=0.11",
     "pytest>=8.3",
-    "pytest-xdist",
-    "jupyterlab",   #
 ]
+[project.scripts]
+mmc = "MetropolisMC:mmc_app"
 
 # uv config
 [tool.uv]
