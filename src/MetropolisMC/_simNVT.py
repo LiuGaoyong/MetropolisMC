@@ -1,6 +1,7 @@
 from pathlib import Path
 
 import numpy as np
+import typer
 from ase.calculators.calculator import Calculator
 from typing_extensions import override
 
@@ -177,3 +178,192 @@ class MonteCarloNVT(SimABC):
             f"{acc:5.1f}",
             f"{self.__how_to_change:<24s}",
         ]
+
+
+app_nvt = typer.Typer()
+
+
+@app_nvt.command()
+def general(
+    structure_file: str | None = typer.Option(
+        None,
+        "--structure-file",
+        "-s",
+        help="""The file to read the structure from.
+            By default, the structure will be read
+            from either 'POSCAR' or 'structure.xyz'.""",
+    ),
+    spe_method: str = typer.Option(
+        "emt",
+        "--spe-method",
+        "-spe",
+        help="""The SPE method for simulation.
+            It's format like NAME,ARG0,ARG1,ARG...,KWARG0=VAL0,KWARG1=VAL1,...
+        """,
+    ),
+    swap_for_all_pairs: bool = typer.Option(
+        False,
+        "--swap-for-all-pairs",
+        help="""Wether perform atoms swap for all atomic
+            pair or only for the connected atomic pairs.""",
+    ),
+    swap_interval: int = typer.Option(
+        0,
+        "--swap-interval",
+        help="""Perform atoms swap for every *interval* time steps.
+            If it was set to zero, no swap will be performed.
+            """,
+    ),
+    record_interval: int = typer.Option(
+        1,
+        "--record-interval",
+        help="""Only write record line for every *interval* time steps""",
+    ),
+    trajectory_interval: int = typer.Option(
+        1,
+        "--trajectory-interval",
+        help="""Only write trajectory for every *interval* time steps""",
+    ),
+    trajectory_file: str = typer.Option(
+        "ase.traj",
+        "--trajectory-file",
+        help="""The file to write the trajectory.""",
+    ),
+    record_file: str = typer.Option(
+        "record.table",
+        "--record-file",
+        help="""The file to record something.
+            Typically, the record file is a table of the simulation
+            results and it can be read as a pandas dataframe.""",
+    ),
+    max_steps: int = typer.Option(
+        100_000,
+        "--max-steps",
+        help="""The maximum number of steps for simulation.""",
+    ),
+    stepsize_max: float = typer.Option(
+        0.5,
+        "--stepsize-max",
+        help="""The maximum stepsize for single particle displacement.""",
+    ),
+    temperature: float = typer.Option(
+        1000.0,
+        "--temperature",
+        help="""The temperature for NVT simulation.""",
+    ),
+    workdir: str = typer.Option(
+        ".",
+        "--workdir",
+        help="""The working directory.""",
+    ),
+) -> None:
+    sim = MonteCarloNVT(
+        atoms=structure_file,
+        calculator=spe_method,
+        record_file=record_file,
+        trajectory=trajectory_file,
+        trajectory_interval=trajectory_interval,
+        record_interval=record_interval,
+        workdir=workdir,
+        stepsize_max=stepsize_max,
+        temperature=temperature,
+        swap_interval=swap_interval,
+        swap_for_connected_pair_only=not swap_for_all_pairs,
+        # lambda_for_force_bias=nan,
+        max_steps=max_steps,
+    )
+    sim.run()
+
+
+@app_nvt.command()
+def vasp_gamma(
+    structure_file: str | None = typer.Option(
+        None,
+        "--structure-file",
+        "-s",
+        help="""The file to read the structure from.
+            By default, the structure will be read
+            from either 'POSCAR' or 'structure.xyz'.""",
+    ),
+    vasp_commamd: str = typer.Option("vasp_gam"),
+    swap_for_all_pairs: bool = typer.Option(
+        False,
+        help="""Wether perform atoms swap for all atomic
+            pair or only for the connected atomic pairs.""",
+    ),
+    swap_interval: int = typer.Option(
+        0,
+        help="""Perform atoms swap for every *interval* time steps.
+            If it was set to zero, no swap will be performed.
+            """,
+    ),
+    record_interval: int = typer.Option(
+        1,
+        help="""Only write record line for every *interval* time steps""",
+    ),
+    trajectory_interval: int = typer.Option(
+        1,
+        help="""Only write trajectory for every *interval* time steps""",
+    ),
+    trajectory_file: str = typer.Option(
+        "ase.traj",
+        help="""The file to write the trajectory.""",
+    ),
+    record_file: str = typer.Option(
+        "record.table",
+        help="""The file to record something.
+            Typically, the record file is a table of the simulation
+            results and it can be read as a pandas dataframe.""",
+    ),
+    max_steps: int = typer.Option(
+        100_000,
+        help="""The maximum number of steps for simulation.""",
+    ),
+    stepsize_max: float = typer.Option(
+        0.5,
+        help="""The maximum stepsize for single particle displacement.""",
+    ),
+    temperature: float = typer.Option(
+        1000.0,
+        "-T",
+        "--temperature",
+        help="""The temperature for NVT simulation.""",
+    ),
+    workdir: str = typer.Option(
+        ".",
+        "--workdir",
+        help="""The working directory.""",
+    ),
+) -> None:
+    from ase.calculators.vasp import Vasp
+
+    sim = MonteCarloNVT(
+        atoms=structure_file,
+        calculator=Vasp(
+            xc="PBE",
+            algo="fast",
+            ivdw=12,  # DFT-D3 correction
+            encut=450,
+            kpts=[1, 1, 1],  # K points density
+            gamma=True,
+            ediff=5e-6,
+            lwave=False,
+            lcharg=False,
+            nsw=1,
+            potim=0.1,
+            isym=0,
+            command=vasp_commamd,
+        ),
+        record_file=record_file,
+        trajectory=trajectory_file,
+        trajectory_interval=trajectory_interval,
+        record_interval=record_interval,
+        workdir=workdir,
+        stepsize_max=stepsize_max,
+        temperature=temperature,
+        swap_interval=swap_interval,
+        swap_for_connected_pair_only=not swap_for_all_pairs,
+        # lambda_for_force_bias=nan,
+        max_steps=max_steps,
+    )
+    sim.run()
